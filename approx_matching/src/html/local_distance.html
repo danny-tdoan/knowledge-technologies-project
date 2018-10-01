@@ -1,0 +1,121 @@
+<html>
+	<head>
+		<script src="c.js"></script>
+		<title>Approx Search</title>
+
+		<textarea id="out" rows=1 cols=80 disabled></textarea>
+		<div align="center">
+			<form action="">
+				<input type="text"	id="fn" hidden="true" value="find_approx_match_local_distance"><br>
+				<input type="text"	id="params"><br>
+				<input type="text"	id="table" hidden="true" size="100">
+				<input type="submit"   value="Search" onclick="return send()">
+			</form>
+		</div>
+
+		<script type="text/javascript">
+		var ws,out=document.getElementById("out"),c=connect();
+
+		function connect(){
+				if ("WebSocket" in window){
+					ws=new WebSocket("ws://localhost:2700/");
+					ws.binaryType="arraybuffer";
+					out.value="connecting..." ;
+					ws.onopen=function(e){out.value="Socket connected";};
+					ws.onclose=function(e){out.value="Socket disconnected";};
+					ws.onmessage=function(e){
+						out.value="";
+						d=deserialize(e.data);
+						
+						//fetch data and redraw
+						displayResult(d.res);
+						
+						//for(var x in d)out.value+=x+'='+d[x][10]["c1"].getTime()+'\n';
+						//displayInTables(d,10)
+					};
+					//ws.onerror=function(e){out.value=e.data;};
+				}
+				else alert("WebSockets not supported on your browser.");
+			}
+			
+			function send(){
+				var d={fn:0,params:0,table:0};
+				for(var x in d){
+					d[x]=document.getElementById(x).value;
+				}
+				
+				var s=serialize(d)
+				ws.send(s);
+				out.value="Searching for query "+document.getElementById("params").value;
+				return false;
+			}
+
+			function displayResult(data){
+				//get the table and tbody
+				//var resTable=document.getElementById("resTable");
+				//create a fresh table
+				var tbl=document.getElementById("resTable");
+				if(tbl) tbl.parentNode.removeChild(tbl);
+
+				var resTable=document.createElement("table");
+				resTable.setAttribute("id","resTable");
+				var body = document.getElementsByTagName("body")[0];
+				body.appendChild(resTable);
+
+				var tblBody=document.createElement("tbody");
+				tblBody.setAttribute("id","resBody");
+
+				var resRowHeader=document.createElement("tr");
+
+				var tweetHeader=document.createElement("td");
+				var tweetHeaderText=document.createTextNode("Tweet");
+				tweetHeader.appendChild(tweetHeaderText);
+
+				var distanceHeader=document.createElement("td");
+				var distanceHeaderText=document.createTextNode("Edit Distance");
+				distanceHeader.appendChild(distanceHeaderText);
+
+				resRowHeader.appendChild(tweetHeader);
+				resRowHeader.appendChild(distanceHeader);
+				tblBody.appendChild(resRowHeader);
+
+				resTable.appendChild(tblBody);
+
+				for(var i=0;i<data.length;i++){
+					entry=data[i];
+
+					//break the idx, distance and tweet content
+					idx=entry['idx'];
+					distance=entry['distance'];
+					tweet=entry['tweet'];
+
+					appendResultToTable(idx,distance,tweet);
+				}
+			}
+
+			function appendResultToTable(idx,distance,tweet){
+				var resRow=document.createElement("tr");
+				
+				var resTweet=document.createElement("td");
+				var resTweetText=document.createTextNode(tweet);
+				resTweet.appendChild(resTweetText);
+
+				var resDistance=document.createElement("td");
+				var resDistanceText=document.createTextNode(distance);
+				resDistance.appendChild(resDistanceText);
+
+				resRow.appendChild(resTweet);
+				resRow.appendChild(resDistance);
+
+				//get the table and append the stuff
+				tBody=document.getElementById("resBody");
+				tBody.appendChild(resRow);
+			}
+		</script>
+	</head>
+
+	<body>
+			<!--<table border='1' cellpadding='0' cellspacing='0' id='resTable' align='center'> -->
+	</table>
+	</body>
+</html>
